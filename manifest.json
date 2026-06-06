@@ -14,13 +14,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "kimi-export@local",
-      "strict_min_version": "140.0",
-      "data_collection_permissions": {
-        "required": ["usage"],
-        "usage": false,
-        "telemetry": false,
-        "crash": false
-      }
+      "strict_min_version": "115.0"
     }
   },
   "background": {
