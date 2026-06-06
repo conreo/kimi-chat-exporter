@@ -1,0 +1,42 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JS syntax
+        run: |
+          node -c background.js
+          node -c popup.js
+          node -c content.js
+
+      - name: Validate JSON
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'))"
+
+      - name: Package .xpi
+        run: |
+          zip -r kimi-chat-exporter.xpi \
+            manifest.json background.html background.js content.js \
+            popup.html popup.css popup.js icons/ LICENSE README.md \
+            -x ".git/*" ".github/*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kimi-chat-exporter
+          path: kimi-chat-exporter.xpi
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: kimi-chat-exporter.xpi
