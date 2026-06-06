@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Kimi Chat Exporter",
   "version": "1.0.0",
   "description": "Export Kimi AI conversations as Markdown and JSON",
@@ -7,9 +7,10 @@
     "storage",
     "downloads",
     "menus",
-    "https://www.kimi.com/*",
-    "notifications",
-    "activeTab"
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://www.kimi.com/*"
   ],
   "browser_specific_settings": {
     "gecko": {
@@ -20,7 +21,7 @@
   "background": {
     "page": "background.html"
   },
-  "browser_action": {
+  "action": {
     "default_title": "Kimi Export",
     "default_popup": "popup.html",
     "default_icon": {
@@ -39,5 +40,8 @@
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'"
+  }
 }

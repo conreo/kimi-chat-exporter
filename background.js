@@ -179,10 +179,10 @@ async function exportAll(opts){
   var chats=[],token=null;
   do{var body=token?{page_size:50,page_token:token,query:''}:{page_size:50,query:''};var d=await kimiFetch('/apiv2/kimi.chat.v1.ChatService/ListChats',body);if(!(d.chats||[]).length)break;chats=chats.concat(d.chats);token=d.nextPageToken;}while(token);
   var ids=chats.map(function(c){return c.id;}).slice(0,50),files=[],errs=[];
-  browser.browserAction.setBadgeBackgroundColor({color:'#4ade80'});
+  browser.action.setBadgeBackgroundColor({color:'#4ade80'});
   for(var i=0;i<ids.length;i++){
     var cid=ids[i],nm=cid;
-    browser.browserAction.setBadgeText({text:(i+1)+'/'+ids.length});
+    browser.action.setBadgeText({text:(i+1)+'/'+ids.length});
     try{
       var found=chats.find(function(c){return c.id===cid;});if(found)nm=found.name;
       var data=await kimiFetch('/apiv2/kimi.gateway.chat.v1.ChatService/ListMessages',{chatId:cid}),msgs=data.messages||[];
@@ -193,7 +193,7 @@ async function exportAll(opts){
       if(fmt==='both'||fmt==='json')files.push({name:fn+'.json',data:JSON.stringify(data,null,2)});
     }catch(e){errs.push(cid+'|'+nm+'|'+e.message);}
   }
-  browser.browserAction.setBadgeText({text:errs.length?'DONE':'OK'});setTimeout(function(){browser.browserAction.setBadgeText({text:''});},3000);
+  browser.action.setBadgeText({text:errs.length?'DONE':'OK'});setTimeout(function(){browser.action.setBadgeText({text:''});},3000);
   if(errs.length)files.push({name:'_export-errors.txt',data:errs.join('\n')});
   var zipData=createZip(files),blobUrl=URL.createObjectURL(new Blob([zipData],{type:'application/zip'}));
   await browser.downloads.download({url:blobUrl,filename:'Kimi-export-'+new Date().toISOString().split('T')[0]+'.zip',saveAs:false});
@@ -203,6 +203,14 @@ async function exportAll(opts){
 var opts={thinking:false,tools:false,refs:true,format:'both'};
 browser.storage.local.get(['thinking','tools','format']).then(function(s){opts.thinking=s.thinking||false;opts.tools=s.tools||false;opts.format=s.format||'both';});
 
+browser.runtime.onInstalled.addListener(function(){
+  browser.menus.removeAll(function(){
+    browser.menus.create({id:'export-chat',title:'Export this conversation',contexts:['page'],documentUrlPatterns:['https://www.kimi.com/chat/*']});
+    browser.menus.create({id:'export-all',title:'Export all conversations',contexts:['page'],documentUrlPatterns:['https://www.kimi.com/*']});
+  });
+});
+
+// Also register immediately (for first install before onInstalled fires)
 browser.menus.removeAll(function(){
   browser.menus.create({id:'export-chat',title:'Export this conversation',contexts:['page'],documentUrlPatterns:['https://www.kimi.com/chat/*']});
   browser.menus.create({id:'export-all',title:'Export all conversations',contexts:['page'],documentUrlPatterns:['https://www.kimi.com/*']});
