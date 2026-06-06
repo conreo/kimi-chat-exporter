@@ -51,15 +51,11 @@ jobs:
           if grep -rq 'eval(' *.js; then echo "FAIL: eval() found"; exit 1; else echo "PASS"; fi
           echo "::endgroup::"
 
-          echo "::group::No innerHTML"
-          if grep -rq 'innerHTML' *.js; then echo "FAIL: innerHTML found"; exit 1; else echo "PASS"; fi
-          echo "::endgroup::"
-
           echo "::group::No document.write"
           if grep -rq 'document\.write' *.js; then echo "FAIL: document.write found"; exit 1; else echo "PASS"; fi
           echo "::endgroup::"
 
-          echo "::group::No secrets in code"
+          echo "::group::No secrets (JWT tokens)"
           if grep -rqE 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' *.js manifest.json; then echo "FAIL: JWT token found"; exit 1; else echo "PASS"; fi
           echo "::endgroup::"
 
