@@ -6,7 +6,7 @@ var el=document.getElementById('exportLabel'),ld=document.getElementById('loadin
 var pr=document.getElementById('progress'),pb=document.getElementById('progressBar'),pt=document.getElementById('progressText');
 var cb=document.getElementById('copyBtn');
 
-function showProgress(pct,text){pr.style.display='block';var bar=pb.firstChild;if(bar)bar.style.width=pct+'%';else{bar=document.createElement('div');bar.style.cssText='height:4px;background:var(--accent);width:'+pct+'%';pb.appendChild(bar);}if(text)pt.textContent=text;}
+function showProgress(pct,text){pr.style.display='block';var bar=pb.firstChild;if(bar)bar.style.width=pct+'%';else{bar=document.createElement('div');bar.style.cssText='height:4px;background:#4ade80;width:'+pct+'%';pb.appendChild(bar);}if(text)pt.textContent=text;}
 function hideProgress(){pr.style.display='none';}
 
 function show(){for(var i=0;i<arguments.length;i++)arguments[i].classList.remove('hidden');}
@@ -119,7 +119,7 @@ eb.addEventListener('click',async function(){
     }
   });
 
-  var payload=isChat?{type:type,chatId:chatId,options:opts}:{type:type,chatIds:[].slice.call(selected),options:opts};
+  var payload=isChat?{type:type,chatId:chatId,options:opts}:{type:type,chatIds:Array.from(selected),options:opts};
   port.postMessage(payload);
 });
 
