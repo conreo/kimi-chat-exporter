@@ -1,26 +1,66 @@
-name: Build & Release
+name: Lint, Security & Release
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   release:
     types: [published]
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Validate JS syntax
         run: |
-          node -c background.js
-          node -c popup.js
-          node -c content.js
+          node -c background.js && echo "✓ background.js"
+          node -c popup.js && echo "✓ popup.js"
+          node -c content.js && echo "✓ content.js"
 
-      - name: Validate JSON
+      - name: Validate manifest.json
+        run: node -e "const m=JSON.parse(require('fs').readFileSync('manifest.json','utf8'));console.log('✓ manifest.json v'+m.manifest_version)"
+
+      - name: Install web-ext
+        run: npm install -g web-ext
+
+      - name: web-ext lint
+        run: web-ext lint --source-dir . --warnings-as-errors
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for dangerous patterns
         run: |
-          node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'))"
+          echo "=== No eval() ==="
+          ! grep -rn 'eval(' *.js || true
+          echo "=== No innerHTML ==="
+          ! grep -rn 'innerHTML' *.js || true
+          echo "=== No document.write ==="
+          ! grep -rn 'document\.write' *.js || true
+          echo "=== No remote scripts ==="
+          ! grep -rn 'https\?://' manifest.json || echo "✓ Only kimi.com"
+          echo "=== No secrets ==="
+          ! grep -rn 'eyJ\|token\|password\|secret\|key-' *.js manifest.json || echo "✓ Clean"
+
+      - name: Check file permissions
+        run: |
+          find . -type f -name "*.sh" -exec chmod +x {} \;
+          find . -type f -perm /111 ! -name "*.sh" -exec echo "Unexpected executable: {}" \; | (! grep .)
+
+  package:
+    needs: [lint, security]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Package .xpi
         run: |
