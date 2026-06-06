@@ -61,7 +61,7 @@ jobs:
 
       - name: Check file permissions
         run: |
-          find . -type f -perm /111 ! -name "*.sh" | (grep . && echo "FAIL: unexpected executable files" && exit 1 || echo "PASS: no unexpected executables")
+          find . -type f -perm /111 ! -name "*.sh" ! -path "./.git/*" | (grep . && echo "FAIL: unexpected executable files" && exit 1 || echo "PASS")
 
   package:
     needs: [lint, security]
