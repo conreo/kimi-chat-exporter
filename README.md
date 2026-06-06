@@ -23,6 +23,10 @@ Firefox extension to export [Kimi AI](https://kimi.com) conversations as Markdow
 4. Select the `.xpi` file
 5. Log into [kimi.com](https://www.kimi.com) — done!
 
+> ⚠️ **Firefox Stable** blocks unsigned extensions. Use **Firefox Developer Edition** or **Nightly**, then set `xpinstall.signatures.required` to `false` in `about:config`.
+>
+> Or: add your own signature on [addons.mozilla.org](https://addons.mozilla.org/developers/addon/submit/distribution) (free, takes ~24h).
+
 > **Option B: Temporary load (no signing needed)**
 
 1. Clone this repo:
