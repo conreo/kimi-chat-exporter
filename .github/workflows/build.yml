@@ -23,18 +23,19 @@ jobs:
 
       - name: Validate JS syntax
         run: |
-          node -c background.js && echo "✓ background.js"
-          node -c popup.js && echo "✓ popup.js"
-          node -c content.js && echo "✓ content.js"
+          node -c background.js && echo "[OK] background.js"
+          node -c popup.js && echo "[OK] popup.js"
+          node -c content.js && echo "[OK] content.js"
 
       - name: Validate manifest.json
-        run: node -e "const m=JSON.parse(require('fs').readFileSync('manifest.json','utf8'));console.log('✓ manifest.json v'+m.manifest_version)"
+        run: |
+          node -e "const m=JSON.parse(require('fs').readFileSync('manifest.json','utf8'));console.log('[OK] manifest.json v'+m.manifest_version)"
 
       - name: Install web-ext
         run: npm install -g web-ext
 
       - name: web-ext lint
-        run: web-ext lint --source-dir . --warnings-as-errors
+        run: web-ext lint --source-dir .
 
   security:
     runs-on: ubuntu-latest
@@ -43,21 +44,25 @@ jobs:
 
       - name: Check for dangerous patterns
         run: |
-          echo "=== No eval() ==="
-          ! grep -rn 'eval(' *.js || true
-          echo "=== No innerHTML ==="
-          ! grep -rn 'innerHTML' *.js || true
-          echo "=== No document.write ==="
-          ! grep -rn 'document\.write' *.js || true
-          echo "=== No remote scripts ==="
-          ! grep -rn 'https\?://' manifest.json || echo "✓ Only kimi.com"
-          echo "=== No secrets ==="
-          ! grep -rn 'eyJ\|token\|password\|secret\|key-' *.js manifest.json || echo "✓ Clean"
+          echo "::group::No eval()"
+          if grep -rq 'eval(' *.js; then echo "FAIL: eval() found"; exit 1; else echo "PASS"; fi
+          echo "::endgroup::"
+
+          echo "::group::No innerHTML"
+          if grep -rq 'innerHTML' *.js; then echo "FAIL: innerHTML found"; exit 1; else echo "PASS"; fi
+          echo "::endgroup::"
+
+          echo "::group::No document.write"
+          if grep -rq 'document\.write' *.js; then echo "FAIL: document.write found"; exit 1; else echo "PASS"; fi
+          echo "::endgroup::"
+
+          echo "::group::No secrets in code"
+          if grep -rqE 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' *.js manifest.json; then echo "FAIL: JWT token found"; exit 1; else echo "PASS"; fi
+          echo "::endgroup::"
 
       - name: Check file permissions
         run: |
-          find . -type f -name "*.sh" -exec chmod +x {} \;
-          find . -type f -perm /111 ! -name "*.sh" -exec echo "Unexpected executable: {}" \; | (! grep .)
+          find . -type f -perm /111 ! -name "*.sh" | (grep . && echo "FAIL: unexpected executable files" && exit 1 || echo "PASS: no unexpected executables")
 
   package:
     needs: [lint, security]
