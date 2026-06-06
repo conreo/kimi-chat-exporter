@@ -87,6 +87,6 @@ jobs:
 
       - name: Attach to release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: kimi-chat-exporter.xpi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload ${{ github.ref_name }} kimi-chat-exporter.xpi
