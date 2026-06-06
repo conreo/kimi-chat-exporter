@@ -113,7 +113,7 @@ function safeFn(n){return(n||'untitled').replace(/[\\/:*?"<>|]/g,'-').replace(/-
 
 var KIMI_HEADERS={'Content-Type':'application/json','connect-protocol-version':'1','x-msh-platform':'web','x-msh-version':'1.0.0','x-language':'en-US'};
 
-async function getToken(){if(authToken)return authToken;var tabs=await browser.tabs.query({url:'https://www.kimi.com/*'});if(tabs.length)return new Promise(function(resolve){browser.tabs.executeScript(tabs[0].id,{code:'localStorage.getItem("access_token")'},function(results){if(results&&results[0])authToken=results[0];resolve(authToken);});});return null;}
+async function getToken(){if(authToken)return authToken;var tabs=await browser.tabs.query({url:'https://www.kimi.com/*'});if(tabs.length)return new Promise(function(resolve){browser.scripting.executeScript({target:{tabId:tabs[0].id},func:function(){return localStorage.getItem('access_token');}}).then(function(results){if(results&&results[0]&&results[0].result)authToken=results[0].result;resolve(authToken);});});return null;}
 
 async function kimiFetch(endpoint,body){
   var token=await getToken(),headers=Object.assign({},KIMI_HEADERS);

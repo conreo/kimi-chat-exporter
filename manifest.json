@@ -7,7 +7,8 @@
     "storage",
     "downloads",
     "menus",
-    "notifications"
+    "notifications",
+    "scripting"
   ],
   "host_permissions": [
     "https://www.kimi.com/*"
@@ -15,7 +16,10 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "kimi-export@local",
-      "strict_min_version": "115.0"
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   },
   "background": {
