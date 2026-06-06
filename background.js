@@ -156,6 +156,7 @@ async function exportAllWithProgress(chatIds,opts,send){
   }
   var chats=chatIds.slice(0,50),total=chats.length,files=[],errs=[];
   send('progress',{pct:0,text:'0/'+total});
+  await new Promise(function(r){setTimeout(r,50);});
   for(var i=0;i<chats.length;i++){
     var cid=chats[i],nm=cid;
     try{
@@ -168,6 +169,7 @@ async function exportAllWithProgress(chatIds,opts,send){
       if(fmt==='both'||fmt==='json')files.push({name:fn+'.json',data:JSON.stringify(data,null,2)});
     }catch(e){errs.push(cid+'|'+nm+'|'+e.message);}
     send('progress',{pct:Math.round((i+1)/total*100),text:(i+1)+'/'+total});
+    await new Promise(function(r){setTimeout(r,20);});
   }
   if(errs.length)files.push({name:'_export-errors.txt',data:errs.join('\n')});
   var zipData=createZip(files),blobUrl=URL.createObjectURL(new Blob([zipData],{type:'application/zip'}));
