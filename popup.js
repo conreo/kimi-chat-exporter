@@ -6,7 +6,7 @@ var el=document.getElementById('exportLabel'),ld=document.getElementById('loadin
 var pr=document.getElementById('progress'),pb=document.getElementById('progressBar'),pt=document.getElementById('progressText');
 var cb=document.getElementById('copyBtn');
 
-function showProgress(pct,text){pr.style.display='block';pb.firstChild?pb.firstChild.style.width=pct+'%':(pb.innerHTML='<div style="width:'+pct+'%"></div>');if(text)pt.textContent=text;}
+function showProgress(pct,text){pr.style.display='block';var bar=pb.firstChild;if(bar)bar.style.width=pct+'%';else{bar=document.createElement('div');bar.style.cssText='height:4px;background:var(--accent);width:'+pct+'%';pb.appendChild(bar);}if(text)pt.textContent=text;}
 function hideProgress(){pr.style.display='none';}
 
 function show(){for(var i=0;i<arguments.length;i++)arguments[i].classList.remove('hidden');}
@@ -39,13 +39,20 @@ async function renderSingle(){
   if(!r.ok){setErr(r.error);return}
   hn.textContent=r.title;st.textContent=r.messageCount+' messages \u00b7 '+new Date(r.date).toLocaleDateString();
   el.textContent='Export';show(hn,tr,st,eb,cb);
-  
-  // Add "Export all" link below
+
   var allLink=document.createElement('div');
   allLink.style.cssText='text-align:center;padding:4px 0;font-size:11px;opacity:.7;cursor:pointer';
-  allLink.textContent='⬇ Export all conversations';
+  allLink.textContent='\u2b07 Export all conversations';
   allLink.addEventListener('click',function(){isChat=false;renderBatch();});
   document.getElementById('actionBar').parentNode.insertBefore(allLink,document.getElementById('actionBar').nextSibling);
+}
+
+function renderChatItem(c,nm,pua){
+  var d=document.createElement('div'),sp=document.createElement('span');
+  d.className='chatItem';sp.textContent='\u2610 '+nm;d.appendChild(sp);
+  var chk=false;
+  d.addEventListener('click',function(){chk=!chk;sp.textContent=(chk?'\u2611':'\u2610')+' '+nm;if(chk)selected.add(c.id);else selected.delete(c.id);updateCount();});
+  return d;
 }
 
 async function renderBatch(){
@@ -54,25 +61,28 @@ async function renderBatch(){
   hn.textContent='\ud83d\udcda All conversations';
   var chats=(r.chats||[]).sort(function(a,b){return new Date(b.updateTime)-new Date(a.updateTime);});
   var pua=/[\ue000-\uf8ff]/g;
-  cl.innerHTML='';chats.forEach(function(c){
-    var nm=(c.name||c.id).replace(pua,''),d=document.createElement('div');
-    d.className='chatItem';d.innerHTML='\u2610 '+nm;
-    d.addEventListener('click',function(){if(selected.has(c.id)){selected.delete(c.id);d.innerHTML='\u2610 '+nm;}else{selected.add(c.id);d.innerHTML='\u2611 '+nm;}updateCount();});
-    cl.appendChild(d);
+  while(cl.firstChild)cl.removeChild(cl.firstChild);
+  chats.forEach(function(c){
+    var nm=(c.name||c.id).replace(pua,'');
+    cl.appendChild(renderChatItem(c,nm,pua));
   });
-  sc.innerHTML='<span id=\"count\">0 selected</span><span id=\"selectAll\">Select all</span>';
-  document.getElementById('selectAll').addEventListener('click',function(){
+  
+  while(sc.firstChild)sc.removeChild(sc.firstChild);
+  var cnt=document.createElement('span');cnt.id='count';cnt.textContent='0 selected';
+  var sa=document.createElement('span');sa.id='selectAll';sa.textContent='Select all';
+  sc.appendChild(cnt);sc.appendChild(sa);
+  sa.addEventListener('click',function(){
     var all=selected.size===chats.length;selected.clear();
     if(!all)chats.forEach(function(c){selected.add(c.id);});
-    document.querySelectorAll('.chatItem').forEach(function(t,i){t.innerHTML=all?'\u2610 '+(chats[i].name||chats[i].id).replace(pua,''):'\u2611 '+(chats[i].name||chats[i].id).replace(pua,'');});
+    var items=document.querySelectorAll('.chatItem');
+    items.forEach(function(t,i){t.firstChild.textContent=(all?'\u2610':'\u2611')+' '+(chats[i].name||chats[i].id).replace(pua,'');});
     updateCount();
   });
   el.textContent='Export selected';show(hn,cl,sc,eb,tr);
-  
-  // Add quick "Export all" button
+
   var exportAllBtn=document.createElement('div');
   exportAllBtn.id='exportAllBtn';exportAllBtn.style.cssText='cursor:pointer;text-align:center;padding:4px 0;font-size:11px;opacity:.7;background:var(--surface);margin-top:1px';
-  exportAllBtn.innerHTML='⬇ Export all '+chats.length+' chats';
+  exportAllBtn.textContent='\u2b07 Export all '+chats.length+' chats';
   exportAllBtn.addEventListener('click',function(){
     exportAllBtn.style.opacity='0.4';hideProgress();
     var opts=Object.assign({},toggles,{format:format});
@@ -81,8 +91,8 @@ async function renderBatch(){
       if(msg.type==='progress')showProgress(msg.pct,msg.text);
       else if(msg.type==='done'){
         exportAllBtn.style.opacity='1';
-        if(msg.ok){exportAllBtn.textContent='✓ Done';showProgress(100,'Done');}
-        else exportAllBtn.textContent='⚠ '+msg.error;
+        if(msg.ok){exportAllBtn.textContent='\u2713 Done';showProgress(100,'Done');}
+        else exportAllBtn.textContent='\u26a0 '+msg.error;
         port.disconnect();
       }
     });
@@ -97,7 +107,7 @@ eb.addEventListener('click',async function(){
   eb.style.opacity='0.4';hideProgress();
   var type=isChat?'exportSingle':'exportBatch';
   var opts=Object.assign({},toggles,{format:format});
-  
+
   var port=browser.runtime.connect({name:'export'});
   port.onMessage.addListener(function(msg){
     if(msg.type==='progress'){showProgress(msg.pct,msg.text);}
@@ -108,7 +118,7 @@ eb.addEventListener('click',async function(){
       port.disconnect();
     }
   });
-  
+
   var payload=isChat?{type:type,chatId:chatId,options:opts}:{type:type,chatIds:[].slice.call(selected),options:opts};
   port.postMessage(payload);
 });
