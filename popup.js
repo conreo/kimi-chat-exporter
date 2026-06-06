@@ -5,6 +5,7 @@ var sc=document.getElementById('selectCount'),eb=document.getElementById('export
 var el=document.getElementById('exportLabel'),ld=document.getElementById('loading'),er=document.getElementById('error');
 var pr=document.getElementById('progress'),pb=document.getElementById('progressBar'),pt=document.getElementById('progressText');
 var cb=document.getElementById('copyBtn');
+var exportPort=null;
 
 function showProgress(pct,text){pr.style.display='block';var bar=pb.firstChild;if(bar)bar.style.width=pct+'%';else{bar=document.createElement('div');bar.style.cssText='height:4px;background:#4ade80;width:'+pct+'%';pb.appendChild(bar);}if(text)pt.textContent=text;}
 function hideProgress(){pr.style.display='none';}
@@ -13,7 +14,24 @@ function show(){for(var i=0;i<arguments.length;i++)arguments[i].classList.remove
 function hide(){for(var i=0;i<arguments.length;i++)arguments[i].classList.add('hidden');}
 function setErr(m){hide(tr,st,cl,sc,eb,hn,ld);er.textContent='\u26a0 '+m;show(er);}
 
+function connectExport(){
+  if(exportPort)return exportPort;
+  exportPort=browser.runtime.connect({name:'export'});
+  exportPort.onDisconnect.addListener(function(){exportPort=null;});
+  exportPort.onMessage.addListener(function(msg){
+    if(msg.type==='progress')showProgress(msg.pct,msg.text);
+    else if(msg.type==='done'){
+      if(msg.ok){el.textContent='\u2713 Done';showProgress(100,'Done');}else setErr(msg.error);
+      eb.style.opacity='1';var eab=document.getElementById('exportAllBtn');if(eab)eab.style.opacity='1';
+    }
+  });
+  return exportPort;
+}
+
 async function init(){
+  // Connect to background (will receive active export progress immediately)
+  connectExport();
+  
   var s=await browser.storage.local.get(['thinking','tools','format']);
   toggles.thinking=s.thinking||false;toggles.tools=s.tools||false;
   format=s.format||'both';
@@ -47,7 +65,7 @@ async function renderSingle(){
   document.getElementById('actionBar').parentNode.insertBefore(allLink,document.getElementById('actionBar').nextSibling);
 }
 
-function renderChatItem(c,nm,pua){
+function renderChatItem(c,nm){
   var d=document.createElement('div'),sp=document.createElement('span');
   d.className='chatItem';sp.textContent='\u2610 '+nm;d.appendChild(sp);
   var chk=false;
@@ -64,9 +82,9 @@ async function renderBatch(){
   while(cl.firstChild)cl.removeChild(cl.firstChild);
   chats.forEach(function(c){
     var nm=(c.name||c.id).replace(pua,'');
-    cl.appendChild(renderChatItem(c,nm,pua));
+    cl.appendChild(renderChatItem(c,nm));
   });
-  
+
   while(sc.firstChild)sc.removeChild(sc.firstChild);
   var cnt=document.createElement('span');cnt.id='count';cnt.textContent='0 selected';
   var sa=document.createElement('span');sa.id='selectAll';sa.textContent='Select all';
@@ -84,42 +102,20 @@ async function renderBatch(){
   exportAllBtn.id='exportAllBtn';exportAllBtn.style.cssText='cursor:pointer;text-align:center;padding:4px 0;font-size:11px;opacity:.7;background:var(--surface);margin-top:1px';
   exportAllBtn.textContent='\u2b07 Export all '+chats.length+' chats';
   exportAllBtn.addEventListener('click',function(){
-    exportAllBtn.style.opacity='0.4';hideProgress();
-    var opts=Object.assign({},toggles,{format:format});
-    var port=browser.runtime.connect({name:'export'});
-    port.onMessage.addListener(function(msg){
-      if(msg.type==='progress')showProgress(msg.pct,msg.text);
-      else if(msg.type==='done'){
-        exportAllBtn.style.opacity='1';
-        if(msg.ok){exportAllBtn.textContent='\u2713 Done';showProgress(100,'Done');}
-        else exportAllBtn.textContent='\u26a0 '+msg.error;
-        port.disconnect();
-      }
-    });
-    port.postMessage({type:'exportBatch',chatIds:chats.map(function(c){return c.id;}),options:opts});
+    exportAllBtn.style.opacity='0.4';hideProgress();eb.style.opacity='1';
+    var port=connectExport();
+    port.postMessage({type:'exportBatch',chatIds:chats.map(function(c){return c.id;}),options:Object.assign({},toggles,{format:format})});
   });
   document.getElementById('actionBar').parentNode.insertBefore(exportAllBtn,document.getElementById('actionBar').nextSibling);
 }
 
 function updateCount(){document.getElementById('count').textContent=selected.size+' selected';}
 
-eb.addEventListener('click',async function(){
+eb.addEventListener('click',function(){
   eb.style.opacity='0.4';hideProgress();
   var type=isChat?'exportSingle':'exportBatch';
-  var opts=Object.assign({},toggles,{format:format});
-
-  var port=browser.runtime.connect({name:'export'});
-  port.onMessage.addListener(function(msg){
-    if(msg.type==='progress'){showProgress(msg.pct,msg.text);}
-    else if(msg.type==='done'){
-      eb.style.opacity='1';
-      if(msg.ok){el.textContent='\u2713 Done';showProgress(100,'Done');}
-      else setErr(msg.error);
-      port.disconnect();
-    }
-  });
-
-  var payload=isChat?{type:type,chatId:chatId,options:opts}:{type:type,chatIds:Array.from(selected),options:opts};
+  var port=connectExport();
+  var payload=isChat?{type:type,chatId:chatId,options:Object.assign({},toggles,{format:format})}:{type:type,chatIds:Array.from(selected),options:Object.assign({},toggles,{format:format})};
   port.postMessage(payload);
 });
 

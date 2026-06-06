@@ -253,8 +253,15 @@ browser.menus.removeAll(function(){
 browser.menus.onClicked.addListener(async function(info,tab){
   if(!tab||!tab.url||!tab.url.includes('kimi.com'))return;
   var s=await browser.storage.local.get(['thinking','tools','format']),opt={thinking:s.thinking||false,tools:s.tools||false,refs:true,format:s.format||'both'};
-  if(info.menuItemId==='export-chat'){var m=tab.url.match(/\/chat\/([a-f0-9-]+)/);if(!m)return;try{await exportChat(m[1],opt);}catch(e){console.error(e);}}
-  else if(info.menuItemId==='export-all'){try{await exportAll(opt);}catch(e){console.error(e);}}
+  if(info.menuItemId==='export-chat'){
+    var m=tab.url.match(/\/chat\/([a-f0-9-]+)/);if(!m)return;
+    try{activeExport={pct:0,text:''};await exportChat(m[1],opt);}catch(e){console.error(e);}
+    activeExport=null;broadcast('done',{ok:true});
+  }
+  else if(info.menuItemId==='export-all'){
+    try{activeExport={pct:0,text:'0/0'};await exportAllWithProgress([],opt);}catch(e){console.error(e);}
+    activeExport=null;broadcast('done',{ok:true});
+  }
 });
 
 console.log('Kimi Export ready');
