@@ -6,7 +6,7 @@ var el=document.getElementById('exportLabel'),ld=document.getElementById('loadin
 var pr=document.getElementById('progress'),pb=document.getElementById('progressBar'),pt=document.getElementById('progressText');
 var cb=document.getElementById('copyBtn');
 
-function showProgress(pct,text){pr.style.display='block';pb.innerHTML='<div style="width:'+pct+'%"></div>';if(text)pt.textContent=text;}
+function showProgress(pct,text){pr.style.display='block';pb.firstChild?pb.firstChild.style.width=pct+'%':(pb.innerHTML='<div style="width:'+pct+'%"></div>');if(text)pt.textContent=text;}
 function hideProgress(){pr.style.display='none';}
 
 function show(){for(var i=0;i<arguments.length;i++)arguments[i].classList.remove('hidden');}

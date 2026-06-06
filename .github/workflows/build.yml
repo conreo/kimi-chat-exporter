@@ -27,6 +27,9 @@ jobs:
           node -c popup.js && echo "[OK] popup.js"
           node -c content.js && echo "[OK] content.js"
 
+      - name: Run unit tests
+        run: node tests/test.js
+
       - name: Validate manifest.json
         run: |
           node -e "const m=JSON.parse(require('fs').readFileSync('manifest.json','utf8'));console.log('[OK] manifest.json v'+m.manifest_version)"
