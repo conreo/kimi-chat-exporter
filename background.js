@@ -1,18 +1,47 @@
 // Kimi Conversation Exporter
 
 var authToken = null;
+var activeExport = null;
+var exportPorts = [];
+
+function broadcast(type, data) {
+  exportPorts = exportPorts.filter(function(p) {
+    try { p.postMessage(Object.assign({type: type}, data)); return true; }
+    catch(e) { return false; }
+  });
+}
 
 browser.runtime.onConnect.addListener(function(port) {
   if (port.name !== 'export') return;
+  exportPorts.push(port);
+  port.onDisconnect.addListener(function() {
+    exportPorts = exportPorts.filter(function(p) { return p !== port; });
+  });
+
+  // Send current status if an export is already running
+  if (activeExport) {
+    broadcast('progress', {pct: activeExport.pct, text: activeExport.text});
+  }
+
   port.onMessage.addListener(async function(msg) {
-    var send = function(type, data) { try { port.postMessage(Object.assign({type:type}, data)); } catch(e) {} };
     var s = await browser.storage.local.get(['thinking','tools','format']);
     var opt = {thinking:s.thinking||false,tools:s.tools||false,refs:true,format:s.format||'both'};
     if (msg.options) opt = msg.options;
     try {
-      if (msg.type === 'exportSingle') { await exportChat(msg.chatId, opt, send); send('done',{ok:true}); }
-      else if (msg.type === 'exportBatch') { await exportAllWithProgress(msg.chatIds||[], opt, send); send('done',{ok:true}); }
-    } catch(e) { send('done',{ok:false,error:e.message}); }
+      if (msg.type === 'exportSingle') {
+        activeExport = {pct:0, text:''};
+        await exportChat(msg.chatId, opt);
+        activeExport = null;
+        broadcast('done',{ok:true});
+      }
+      else if (msg.type === 'exportBatch') {
+        if (activeExport) return; // already running
+        activeExport = {pct:0, text:'0/0'};
+        await exportAllWithProgress(msg.chatIds||[], opt);
+        activeExport = null;
+        broadcast('done',{ok:true});
+      }
+    } catch(e) { activeExport = null; broadcast('done',{ok:false,error:e.message}); }
   });
 });
 
@@ -148,31 +177,34 @@ async function exportChat(chatId,opts){
   }
 }
 
-async function exportAllWithProgress(chatIds,opts,send){
-  if(!chatIds||!chatIds.length){
-    var allChats=[],token=null;
-    do{var body=token?{page_size:50,page_token:token,query:''}:{page_size:50,query:''};var d=await kimiFetch('/apiv2/kimi.chat.v1.ChatService/ListChats',body);if(!(d.chats||[]).length)break;allChats=allChats.concat(d.chats);token=d.nextPageToken;}while(token);
-    chatIds=allChats.map(function(c){return c.id;}).slice(0,50);
+async function exportAllWithProgress(chatIds, opts) {
+  if (!chatIds || !chatIds.length) {
+    var allChats = [], token = null;
+    do { var body = token ? {page_size:50,page_token:token,query:''} : {page_size:50,query:''}; var d = await kimiFetch('/apiv2/kimi.chat.v1.ChatService/ListChats',body); if (!(d.chats||[]).length) break; allChats = allChats.concat(d.chats); token = d.nextPageToken; } while (token);
+    chatIds = allChats.map(function(c){return c.id;}).slice(0,50);
   }
-  var chats=chatIds.slice(0,50),total=chats.length,files=[],errs=[];
-  send('progress',{pct:0,text:'0/'+total});
-  await new Promise(function(r){setTimeout(r,50);});
-  for(var i=0;i<chats.length;i++){
-    var cid=chats[i],nm=cid;
-    try{
-      var data=await kimiFetch('/apiv2/kimi.gateway.chat.v1.ChatService/ListMessages',{chatId:cid}),msgs=data.messages||[];
-      if(!msgs.length){errs.push(cid+'|'+nm+'|No messages');continue;}
-      try{var cd=await kimiFetch('/apiv2/kimi.chat.v1.ChatService/ListChats',{page_size:50,query:''});var found=(cd.chats||[]).find(function(c){return c.id===cid;});if(found)nm=found.name;}catch(e){}
-      var fmt=opts.format||'both',md=buildMD(msgs,nm,cid,opts),s=safeFn(nm);
-      var now=new Date(),ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'),fn=ds+'-'+s+'-Kimi';
-      if(fmt==='both'||fmt==='md')files.push({name:fn+'.md',data:md});
-      if(fmt==='both'||fmt==='json')files.push({name:fn+'.json',data:JSON.stringify(data,null,2)});
-    }catch(e){errs.push(cid+'|'+nm+'|'+e.message);}
-    send('progress',{pct:Math.round((i+1)/total*100),text:(i+1)+'/'+total});
-    await new Promise(function(r){setTimeout(r,20);});
+  var chats = chatIds.slice(0, 50), total = chats.length, files = [], errs = [];
+  activeExport = {pct: 0, text: '0/'+total};
+  broadcast('progress', {pct: 0, text: '0/'+total});
+  await new Promise(function(r){setTimeout(r, 50);});
+  for (var i = 0; i < chats.length; i++) {
+    var cid = chats[i], nm = cid;
+    try {
+      var data = await kimiFetch('/apiv2/kimi.gateway.chat.v1.ChatService/ListMessages',{chatId:cid}), msgs = data.messages||[];
+      if (!msgs.length) { errs.push(cid+'|'+nm+'|No messages'); continue; }
+      try { var cd = await kimiFetch('/apiv2/kimi.chat.v1.ChatService/ListChats',{page_size:50,query:''}); var found = (cd.chats||[]).find(function(c){return c.id===cid;}); if (found) nm = found.name; } catch(e) {}
+      var fmt = opts.format||'both', md = buildMD(msgs, nm, cid, opts), s = safeFn(nm);
+      var now = new Date(), ds = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0'), fn = ds+'-'+s+'-Kimi';
+      if (fmt==='both'||fmt==='md') files.push({name:fn+'.md', data:md});
+      if (fmt==='both'||fmt==='json') files.push({name:fn+'.json', data:JSON.stringify(data,null,2)});
+    } catch(e) { errs.push(cid+'|'+nm+'|'+e.message); }
+    var pct = Math.round((i+1)/total*100);
+    activeExport = {pct: pct, text: (i+1)+'/'+total};
+    broadcast('progress', {pct: pct, text: (i+1)+'/'+total});
+    await new Promise(function(r){setTimeout(r, 20);});
   }
-  if(errs.length)files.push({name:'_export-errors.txt',data:errs.join('\n')});
-  var zipData=createZip(files),blobUrl=URL.createObjectURL(new Blob([zipData],{type:'application/zip'}));
+  if (errs.length) files.push({name:'_export-errors.txt', data:errs.join('\n')});
+  var zipData = createZip(files), blobUrl = URL.createObjectURL(new Blob([zipData],{type:'application/zip'}));
   await browser.downloads.download({url:blobUrl,filename:'Kimi-export-'+new Date().toISOString().split('T')[0]+'.zip',saveAs:false});
   setTimeout(function(){URL.revokeObjectURL(blobUrl);},5000);
 }
