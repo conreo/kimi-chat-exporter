@@ -1,0 +1,28 @@
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:var(--toolbar-bgcolor,#fff);--fg:var(--lwt-text-color,#1a1a1a);--surface:var(--toolbar-field-background-color,#e8e8e8)}
+@media(prefers-color-scheme:dark){:root{--bg:var(--toolbar-bgcolor,#1c1b22);--fg:var(--lwt-text-color,#fbfbfe);--surface:var(--toolbar-field-background-color,#2b2a33)}}
+body{width:300px;font:14px/20px -apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--fg)}
+#hostname{background:var(--surface);padding:4px 8px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#formatRow{display:flex;justify-content:center;gap:8px;padding:8px 0 0}
+.fmt{cursor:pointer;font-size:10px;padding:2px 6px;border-radius:3px;display:flex;align-items:center;gap:3px}.fmt .dot{width:8px;height:8px;border-radius:50%;border:2px solid var(--fg);opacity:.4;display:inline-block}.fmt.sel .dot{background:var(--fg);opacity:1}.fmt.sel{font-weight:600}
+#toggleRow{display:flex;justify-content:center;gap:16px;padding:8px 0}
+.toggle{cursor:pointer;text-align:center;user-select:none}.toggle .icon{font-size:16px;opacity:.35;font-weight:700}.toggle .label{display:block;font-size:10px;margin-top:2px}
+.toggle.on .icon{opacity:.7}.toggle.on .label{font-weight:600}
+#stats{text-align:center;padding:2px 0 6px;font-size:12px;opacity:.6}
+#chatList{max-height:200px;overflow-y:auto}
+.chatItem{display:flex;align-items:center;gap:4px;padding:3px 8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chatItem:hover{background:var(--surface)}
+#selectCount{display:flex;justify-content:space-between;padding:4px 8px;font-size:11px}
+#selectAll{cursor:pointer;opacity:.7}#selectAll:hover{opacity:1}
+#actionBar{display:flex;justify-content:center;gap:24px;padding:10px 0;background:var(--surface)}
+#exportBtn,#copyBtn{cursor:pointer;text-align:center}#exportBtn:hover,#copyBtn:hover{opacity:.8}
+#exportBtn .icon,#copyBtn .icon{font-size:16px;opacity:.7;font-weight:700}#exportBtn .label,#copyBtn .label{display:block;font-size:10px;margin-top:2px}
+#copyBtn.copied .icon,#copyBtn.copied .label{color:#4ade80;opacity:1}
+#copyBtn.failed .icon,#copyBtn.failed .label{color:#e74c3c;opacity:1}
+#progress{text-align:center;padding:4px 8px;display:none}
+#progressBar{height:4px;background:var(--surface);border-radius:2px;overflow:hidden}
+#progressBar div{height:100%;background:#4ade80;width:0;transition:width .2s}
+#progressText{font-size:10px;margin-top:2px;opacity:.7}
+#loading,#error{text-align:center;padding:20px}#loading{opacity:.6}#error{color:#e74c3c}
+#notice{text-align:center;padding:6px 8px;font-size:10px;opacity:.5;border-top:1px solid var(--surface)}
+.hidden{display:none!important}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><link rel="stylesheet" href="popup.css"></head>
+<body>
+<div id="hostname"></div>
+<div id="formatRow">
+  <div class="fmt" data-fmt="both"><span class="dot"></span>MD + JSON</div>
+  <div class="fmt" data-fmt="md"><span class="dot"></span>MD</div>
+  <div class="fmt" data-fmt="json"><span class="dot"></span>JSON</div>
+</div>
+<div id="toggleRow">
+  <div class="toggle" data-key="thinking"><span class="icon">&#9678;</span><span class="label">Thinking</span></div>
+  <div class="toggle" data-key="tools"><span class="icon">&#9881;</span><span class="label">Tools</span></div>
+</div>
+<div id="stats"></div>
+<div id="chatList"></div>
+<div id="selectCount"></div>
+<div id="actionBar"><div id="exportBtn"><span class="icon">&#8595;</span><span class="label" id="exportLabel">Export</span></div><div id="copyBtn"><span class="icon">&#9112;</span><span class="label">Copy</span></div></div>
+<div id="progress"><div id="progressBar"></div><div id="progressText"></div></div>
+<div id="loading">Loading...</div>
+<div id="error"></div>
+<div id="notice">⚠ Attached files are not downloaded — file names are listed in the export.</div>
+<script src="popup.js"></script>
+</body>
+</html>
